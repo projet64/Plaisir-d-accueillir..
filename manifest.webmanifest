@@ -1,0 +1,9 @@
+{
+  "name": "Plaisir d’accueillir — Moments de partage",
+  "short_name": "Plaisir d’accueillir",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#15110f",
+  "theme_color": "#1b1714",
+  "description": "Recettes, souvenirs et plaisirs de recevoir."
+}
