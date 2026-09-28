@@ -289,8 +289,29 @@ img{display:block;width:100%}
   </nav>
 </div>
 <div id="toast" class="toast"></div>
-
+  
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL = "https://xexeyvtoaxgjeazvnfeo.supabase.co";
+const SUPABASE_KEY = "sb_publishable_4hrecxdlSwGFcrliIz5SOw_-wWAnjqU";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+async function testSupabaseConnection() {
+  const { data, error } = await supabaseClient
+    .from("recipes")
+    .select("id")
+    .limit(1);
+
+  if (error) {
+    console.error("Supabase :", error);
+  } else {
+    console.log("Supabase connecté :", data);
+  }
+}  
 const recipes = [
   {
     id:"risotto-cepes", title:"Risotto aux cèpes", category:"Plat", servings:4, time:"45 min", difficulty:"Facile",
@@ -514,6 +535,7 @@ function init(){
   document.getElementById("memRecipe").innerHTML=recipes.map(r=>`<option value="${r.id}">${r.title}</option>`).join("");
   document.getElementById("memDate").value=new Date().toISOString().slice(0,10);
   renderMemories();
+  testSupabaseConnection();
 }
 init();
 
