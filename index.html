@@ -194,125 +194,72 @@ img{display:block;width:100%}
   .bottom-nav button span{display:block;font-size:20px;margin-bottom:2px}
   .bottom-nav button.active{color:var(--gold)}
 }
-.login-screen{
-  position:fixed;
-  inset:0;
-  z-index:9999;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
 
+.login-screen{
+  position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; padding:24px;
   background:
     linear-gradient(rgba(15,11,9,.58),rgba(15,11,9,.82)),
     url("https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1800&q=88")
     center/cover no-repeat;
 }
-
 .login-card{
-  width:min(420px,92vw);
-  padding:38px 34px;
-  text-align:center;
-
-  background:rgba(27,23,20,.88);
-  backdrop-filter:blur(18px);
-
-  border:1px solid rgba(193,138,67,.35);
-  border-radius:24px;
-
+  width:min(420px,92vw); padding:38px 34px; text-align:center;
+  background:rgba(27,23,20,.88); backdrop-filter:blur(18px);
+  border:1px solid rgba(193,138,67,.35); border-radius:24px;
   box-shadow:0 25px 70px rgba(0,0,0,.55);
 }
-
 .login-logo{
-  width:58px;
-  height:58px;
-  margin:0 auto 18px;
-
-  display:grid;
-  place-items:center;
-
-  border:1px solid rgba(193,138,67,.55);
-  border-radius:50%;
-
-  color:var(--gold);
-  font-family:Georgia,serif;
-  font-size:24px;
+  width:58px; height:58px; margin:0 auto 18px; display:grid; place-items:center;
+  border:1px solid rgba(193,138,67,.55); border-radius:50%;
+  color:var(--gold); font-family:Georgia,serif; font-size:24px;
 }
-
-.login-card h1{
-  margin:0;
-  font-family:Georgia,serif;
-  font-size:34px;
-  font-weight:500;
-  color:var(--cream);
-}
-
-.login-card p{
-  margin:7px 0 28px;
-  color:var(--linen);
-  font-family:Georgia,serif;
-  letter-spacing:.08em;
-}
-
+.login-card h1{margin:0;font-family:Georgia,serif;font-size:34px;font-weight:500;color:var(--cream)}
+.login-card p{margin:7px 0 28px;color:var(--linen);font-family:Georgia,serif;letter-spacing:.08em}
 .login-card input{
-  width:100%;
-  margin-bottom:12px;
-  padding:14px 15px;
-
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,.10);
-
-  background:#181310;
-  color:var(--cream);
-  outline:none;
+  width:100%; margin-bottom:12px; padding:14px 15px; border-radius:12px;
+  border:1px solid rgba(255,255,255,.10); background:#181310; color:var(--cream); outline:none;
 }
-
-.login-card input:focus{
-  border-color:var(--gold);
-}
-
+.login-card input:focus{border-color:var(--gold)}
 .login-card button{
-  width:100%;
-  margin-top:6px;
-  padding:14px;
-
-  border:0;
-  border-radius:12px;
-
-  background:var(--gold);
-  color:#21170f;
-
-  font-weight:700;
+  width:100%; margin-top:6px; padding:14px; border:0; border-radius:12px;
+  background:var(--gold); color:#21170f; font-weight:700;
+}
+.login-message{min-height:20px;margin-top:14px;color:#d8c8b6;font-size:13px}
+.login-screen.hidden{display:none}
+.user-chip{
+  margin-left:8px; padding:8px 10px; border:1px solid var(--border); border-radius:999px;
+  background:rgba(255,255,255,.03); color:var(--linen); font-size:12px;
+}
+.logout-btn{
+  border:1px solid var(--border)!important; background:transparent!important; color:var(--linen)!important;
+}
+.cloud-status{
+  position:fixed; left:16px; bottom:16px; z-index:80; padding:8px 11px; border-radius:999px;
+  background:rgba(27,23,20,.9); border:1px solid var(--border); color:var(--linen); font-size:11px;
+  backdrop-filter:blur(12px);
+}
+@media(max-width:620px){
+  .user-chip{display:none}
+  .cloud-status{left:10px;bottom:82px}
 }
 
-.login-message{
-  min-height:20px;
-  margin-top:14px;
-  color:#d8c8b6;
-  font-size:13px;
-}
-
-.login-screen.hidden{
-  display:none;
-}  
 </style>
 </head>
 <body>
 <div class="app-shell">
+
   <div id="loginScreen" class="login-screen">
-  <div class="login-card">
-    <div class="login-logo">PA</div>
-    <h1>Plaisir d’accueillir</h1>
-    <p>Moments de partage</p>
-
-    <input id="loginEmail" type="email" placeholder="Adresse e-mail">
-    <input id="loginPassword" type="password" placeholder="Mot de passe">
-
-    <button onclick="loginUser()">Se connecter</button>
-
-    <div id="loginMessage" class="login-message"></div>
+    <div class="login-card">
+      <div class="login-logo">PA</div>
+      <h1>Plaisir d’accueillir</h1>
+      <p>Moments de partage</p>
+      <input id="loginEmail" type="email" placeholder="Adresse e-mail" autocomplete="email">
+      <input id="loginPassword" type="password" placeholder="Mot de passe" autocomplete="current-password">
+      <button onclick="loginUser()">Se connecter</button>
+      <div id="loginMessage" class="login-message"></div>
+    </div>
   </div>
-</div>
+
   <header class="topbar">
     <div class="brand" onclick="showView('home')" role="button" tabindex="0">
       <div class="brand-mark">PA</div>
@@ -326,6 +273,8 @@ img{display:block;width:100%}
       <button data-view="memories">Souvenirs</button>
     </nav>
     <button class="icon-btn mobile-menu" onclick="showView('recipes')">☰</button>
+    <span id="userChip" class="user-chip hidden"></span>
+    <button id="logoutBtn" class="icon-btn logout-btn hidden" onclick="logoutUser()">Déconnexion</button>
   </header>
 
   <main class="page">
@@ -404,89 +353,18 @@ img{display:block;width:100%}
   </nav>
 </div>
 <div id="toast" class="toast"></div>
-  
+<div id="cloudStatus" class="cloud-status">Connexion…</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = "https://xexeyvtoaxgjeazvnfeo.supabase.co";
 const SUPABASE_KEY = "sb_publishable_4hrecxdlSwGFcrliIz5SOw_-wWAnjqU";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
-  async function loginUser() {
-  const email = document.getElementById("loginEmail").value.trim();
-  const password = document.getElementById("loginPassword").value;
-  const message = document.getElementById("loginMessage");
+let currentFamilyId = null;
+let currentUser = null;
 
-  message.textContent = "Connexion…";
-
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if (error) {
-    console.error("Connexion :", error);
-    message.textContent = "Adresse e-mail ou mot de passe incorrect.";
-    return;
-  }
-
-  message.textContent = "";
-  document.getElementById("loginScreen").classList.add("hidden");
-
-  console.log("Utilisateur connecté :", data.user.email);
-}
-
-async function initializeAuth() {
-  const {
-    data: { session }
-  } = await supabaseClient.auth.getSession();
-
-  if (session) {
-    document.getElementById("loginScreen").classList.add("hidden");
-    console.log("Session active :", session.user.email);
-    await getFamilyId();
-  } else {
-    document.getElementById("loginScreen").classList.remove("hidden");
-  }
-}
-async function getFamilyId() {
-  const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-
-  if (userError || !user) {
-    console.error("Utilisateur introuvable :", userError);
-    return null;
-  }
-
-  const { data, error } = await supabaseClient
-    .from("family_members")
-    .select("family_id, role")
-    .eq("user_id", user.id)
-    .limit(1)
-    .single();
-
-  if (error) {
-    console.error("Famille introuvable :", error);
-    return null;
-  }
-
-  console.log("Famille connectée :", data.family_id, "— rôle :", data.role);
-  return data.family_id;
-}
-async function testSupabaseConnection() {
-  const { data, error } = await supabaseClient
-    .from("recipes")
-    .select("id")
-    .limit(1);
-
-  if (error) {
-    console.error("Supabase :", error);
-  } else {
-    console.log("Supabase connecté :", data);
-  }
-}  
-const recipes = [
+const DEMO_RECIPES = [
   {
     id:"risotto-cepes", title:"Risotto aux cèpes", category:"Plat", servings:4, time:"45 min", difficulty:"Facile",
     image:"https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=1400&q=86",
@@ -557,6 +435,191 @@ const recipes = [
     occasion:"Dîner de fête"
   }
 ];
+
+let recipes = DEMO_RECIPES.map(r => ({...r}));
+
+
+async function loginUser() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const message = document.getElementById("loginMessage");
+  message.textContent = "Connexion…";
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    message.textContent = "Adresse e-mail ou mot de passe incorrect.";
+    return;
+  }
+
+  currentUser = data.user;
+  message.textContent = "";
+  document.getElementById("loginScreen").classList.add("hidden");
+  await initializeCloud();
+}
+
+async function logoutUser() {
+  await supabaseClient.auth.signOut();
+  currentFamilyId = null;
+  currentUser = null;
+  document.getElementById("userChip").classList.add("hidden");
+  document.getElementById("logoutBtn").classList.add("hidden");
+  document.getElementById("loginScreen").classList.remove("hidden");
+  document.getElementById("cloudStatus").textContent = "Déconnecté";
+}
+
+async function getFamilyContext() {
+  const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+  if (userError || !user) return null;
+
+  const { data, error } = await supabaseClient
+    .from("family_members")
+    .select("family_id, role")
+    .eq("user_id", user.id)
+    .limit(1)
+    .single();
+
+  if (error || !data) return null;
+  return { user, familyId: data.family_id, role: data.role };
+}
+
+function parseTimeLabel(label) {
+  if (!label) return { prep: 0, cook: 0, rest: 0 };
+  const h = /(\d+(?:[.,]\d+)?)\s*h/.exec(label);
+  const m = /(\d+)\s*min/.exec(label);
+  const total = (h ? Math.round(parseFloat(h[1].replace(",", ".")) * 60) : 0) + (m ? parseInt(m[1]) : 0);
+  return { prep: total, cook: 0, rest: 0 };
+}
+
+function minutesToLabel(row) {
+  const total = (row.prep_minutes||0) + (row.cooking_minutes||0) + (row.rest_minutes||0) + (row.marinade_minutes||0);
+  if (!total) return "—";
+  if (total < 60) return `${total} min`;
+  const h = Math.floor(total/60), m = total%60;
+  return m ? `${h} h ${m} min` : `${h} h`;
+}
+
+async function seedDemoRecipesIfNeeded() {
+  const { count, error: countError } = await supabaseClient
+    .from("recipes")
+    .select("id", { count: "exact", head: true })
+    .eq("family_id", currentFamilyId);
+
+  if (countError || (count ?? 0) > 0) return;
+
+  for (const r of DEMO_RECIPES) {
+    const t = parseTimeLabel(r.time);
+    const { data: inserted, error } = await supabaseClient
+      .from("recipes")
+      .insert({
+        family_id: currentFamilyId,
+        title: r.title,
+        category: r.category,
+        occasion: [r.occasion],
+        tags: r.tags,
+        servings: r.servings,
+        prep_minutes: t.prep,
+        cooking_minutes: t.cook,
+        rest_minutes: t.rest,
+        difficulty: r.difficulty === "Intermédiaire" ? "Intermédiaire" : "Facile",
+        accompaniment: r.accompaniment,
+        cover_image_path: r.image,
+        created_by: currentUser.id,
+        updated_by: currentUser.id
+      })
+      .select("id")
+      .single();
+
+    if (error || !inserted) continue;
+
+    const ingRows = r.ingredients.map((i, idx) => ({
+      recipe_id: inserted.id, name: i[0], quantity: i[1], unit: i[2], position: idx
+    }));
+    await supabaseClient.from("recipe_ingredients").insert(ingRows);
+
+    const stepRows = r.steps.map((s, idx) => ({
+      recipe_id: inserted.id, position: idx + 1, instructions: s, duration_minutes: 0, stage_type: "préparation"
+    }));
+    await supabaseClient.from("recipe_steps").insert(stepRows);
+  }
+}
+
+async function loadRecipesFromCloud() {
+  const { data: rows, error } = await supabaseClient
+    .from("recipes")
+    .select(`
+      id, title, category, occasion, tags, servings,
+      prep_minutes, cooking_minutes, rest_minutes, marinade_minutes,
+      difficulty, accompaniment, cover_image_path,
+      recipe_ingredients(name, quantity, unit, position),
+      recipe_steps(position, title, instructions, duration_minutes, stage_type, tip, warning)
+    `)
+    .eq("family_id", currentFamilyId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+
+  recipes = (rows || []).map(row => ({
+    id: row.id,
+    title: row.title,
+    category: row.category || "Plat",
+    servings: row.servings || 4,
+    time: minutesToLabel(row),
+    difficulty: row.difficulty || "Facile",
+    image: row.cover_image_path || "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1400&q=86",
+    tags: row.tags || [],
+    ingredients: (row.recipe_ingredients || [])
+      .sort((a,b)=>(a.position||0)-(b.position||0))
+      .map(i => [i.name, Number(i.quantity ?? 0), i.unit || ""]),
+    steps: (row.recipe_steps || [])
+      .sort((a,b)=>(a.position||0)-(b.position||0))
+      .map(s => s.instructions),
+    accompaniment: row.accompaniment || "",
+    occasion: Array.isArray(row.occasion) ? (row.occasion[0] || "") : (row.occasion || "")
+  }));
+}
+
+function refreshRecipeUI() {
+  renderHome();
+  renderChips();
+  renderRecipes();
+  renderOccasions();
+  document.getElementById("memRecipe").innerHTML =
+    recipes.map(r=>`<option value="${r.id}">${r.title}</option>`).join("");
+}
+
+async function initializeCloud() {
+  document.getElementById("cloudStatus").textContent = "Synchronisation…";
+  const ctx = await getFamilyContext();
+  if (!ctx) {
+    document.getElementById("cloudStatus").textContent = "Famille introuvable";
+    return;
+  }
+
+  currentUser = ctx.user;
+  currentFamilyId = ctx.familyId;
+  document.getElementById("userChip").textContent = currentUser.email;
+  document.getElementById("userChip").classList.remove("hidden");
+  document.getElementById("logoutBtn").classList.remove("hidden");
+
+  await seedDemoRecipesIfNeeded();
+  await loadRecipesFromCloud();
+  refreshRecipeUI();
+
+  document.getElementById("cloudStatus").textContent = "Synchronisé";
+}
+
+async function initializeAuth() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    document.getElementById("loginScreen").classList.add("hidden");
+    currentUser = session.user;
+    await initializeCloud();
+  } else {
+    document.getElementById("loginScreen").classList.remove("hidden");
+    document.getElementById("cloudStatus").textContent = "Connexion requise";
+  }
+}
+
 
 const occasionCards = [
   {title:"Dîner entre amis", subtitle:"Chaleureux, généreux, sans stress", image:recipes[0].image},
@@ -714,7 +777,7 @@ function init(){
 init();
 
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"}).catch(()=>{}));
 }
 </script>
 </body>
