@@ -446,11 +446,34 @@ async function initializeAuth() {
   if (session) {
     document.getElementById("loginScreen").classList.add("hidden");
     console.log("Session active :", session.user.email);
+    await getFamilyId();
   } else {
     document.getElementById("loginScreen").classList.remove("hidden");
   }
 }
+async function getFamilyId() {
+  const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
 
+  if (userError || !user) {
+    console.error("Utilisateur introuvable :", userError);
+    return null;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("family_members")
+    .select("family_id, role")
+    .eq("user_id", user.id)
+    .limit(1)
+    .single();
+
+  if (error) {
+    console.error("Famille introuvable :", error);
+    return null;
+  }
+
+  console.log("Famille connectée :", data.family_id, "— rôle :", data.role);
+  return data.family_id;
+}
 async function testSupabaseConnection() {
   const { data, error } = await supabaseClient
     .from("recipes")
