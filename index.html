@@ -194,10 +194,125 @@ img{display:block;width:100%}
   .bottom-nav button span{display:block;font-size:20px;margin-bottom:2px}
   .bottom-nav button.active{color:var(--gold)}
 }
+.login-screen{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+
+  background:
+    linear-gradient(rgba(15,11,9,.58),rgba(15,11,9,.82)),
+    url("https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1800&q=88")
+    center/cover no-repeat;
+}
+
+.login-card{
+  width:min(420px,92vw);
+  padding:38px 34px;
+  text-align:center;
+
+  background:rgba(27,23,20,.88);
+  backdrop-filter:blur(18px);
+
+  border:1px solid rgba(193,138,67,.35);
+  border-radius:24px;
+
+  box-shadow:0 25px 70px rgba(0,0,0,.55);
+}
+
+.login-logo{
+  width:58px;
+  height:58px;
+  margin:0 auto 18px;
+
+  display:grid;
+  place-items:center;
+
+  border:1px solid rgba(193,138,67,.55);
+  border-radius:50%;
+
+  color:var(--gold);
+  font-family:Georgia,serif;
+  font-size:24px;
+}
+
+.login-card h1{
+  margin:0;
+  font-family:Georgia,serif;
+  font-size:34px;
+  font-weight:500;
+  color:var(--cream);
+}
+
+.login-card p{
+  margin:7px 0 28px;
+  color:var(--linen);
+  font-family:Georgia,serif;
+  letter-spacing:.08em;
+}
+
+.login-card input{
+  width:100%;
+  margin-bottom:12px;
+  padding:14px 15px;
+
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+
+  background:#181310;
+  color:var(--cream);
+  outline:none;
+}
+
+.login-card input:focus{
+  border-color:var(--gold);
+}
+
+.login-card button{
+  width:100%;
+  margin-top:6px;
+  padding:14px;
+
+  border:0;
+  border-radius:12px;
+
+  background:var(--gold);
+  color:#21170f;
+
+  font-weight:700;
+}
+
+.login-message{
+  min-height:20px;
+  margin-top:14px;
+  color:#d8c8b6;
+  font-size:13px;
+}
+
+.login-screen.hidden{
+  display:none;
+}  
 </style>
 </head>
 <body>
 <div class="app-shell">
+  <div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">PA</div>
+    <h1>Plaisir d’accueillir</h1>
+    <p>Moments de partage</p>
+
+    <input id="loginEmail" type="email" placeholder="Adresse e-mail">
+    <input id="loginPassword" type="password" placeholder="Mot de passe">
+
+    <button onclick="loginUser()">Se connecter</button>
+
+    <div id="loginMessage" class="login-message"></div>
+  </div>
+</div>
   <header class="topbar">
     <div class="brand" onclick="showView('home')" role="button" tabindex="0">
       <div class="brand-mark">PA</div>
@@ -299,6 +414,42 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
+  async function loginUser() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const message = document.getElementById("loginMessage");
+
+  message.textContent = "Connexion…";
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    console.error("Connexion :", error);
+    message.textContent = "Adresse e-mail ou mot de passe incorrect.";
+    return;
+  }
+
+  message.textContent = "";
+  document.getElementById("loginScreen").classList.add("hidden");
+
+  console.log("Utilisateur connecté :", data.user.email);
+}
+
+async function initializeAuth() {
+  const {
+    data: { session }
+  } = await supabaseClient.auth.getSession();
+
+  if (session) {
+    document.getElementById("loginScreen").classList.add("hidden");
+    console.log("Session active :", session.user.email);
+  } else {
+    document.getElementById("loginScreen").classList.remove("hidden");
+  }
+}
 
 async function testSupabaseConnection() {
   const { data, error } = await supabaseClient
@@ -535,7 +686,7 @@ function init(){
   document.getElementById("memRecipe").innerHTML=recipes.map(r=>`<option value="${r.id}">${r.title}</option>`).join("");
   document.getElementById("memDate").value=new Date().toISOString().slice(0,10);
   renderMemories();
-  testSupabaseConnection();
+  initializeAuth();
 }
 init();
 
