@@ -170,4 +170,44 @@ async function seed() {
   }
 }
 
-module.exports = { seed };
+// Invités des soirées reprises
+const GUESTS = {
+  key: 'reprise-invites-v1',
+  links: [
+    { soiree: 'reprise-2026-07-04-plancha', friends: [
+      { name: 'Raphael Brayer et sa femme', know: 'Raphael, copain architecte' },
+      { name: 'Stéphane & Anne Trenel' },
+      { name: 'Éric & Anso Rodier' }
+    ] },
+    { soiree: 'reprise-2026-08-30-tataki', friends: [
+      { name: 'Frédéric, Sandrine & Valentine Michel', know: 'Frédéric, cousin de Jérôme ; Valentine, leur fille' },
+      { name: 'Maman', know: 'Famille' },
+      { name: 'Ma sœur', know: 'Famille' }
+    ] }
+  ]
+};
+
+async function seedGuests() {
+  const done = await q('SELECT 1 FROM meta WHERE key = $1', [GUESTS.key]);
+  if (done.rows.length) return;
+  for (const l of GUESTS.links) {
+    const m = await q('SELECT value FROM meta WHERE key = $1', [l.soiree]);
+    if (!m.rows.length) continue;
+    const sid = parseInt(m.rows[0].value, 10);
+    for (const f of l.friends) {
+      const ex = await q('SELECT id FROM friends WHERE lower(name) = lower($1)', [f.name]);
+      const fid = ex.rows.length ? ex.rows[0].id
+        : (await q('INSERT INTO friends (name, know) VALUES ($1, $2) RETURNING id', [f.name, f.know || null])).rows[0].id;
+      await q('INSERT INTO soiree_friends VALUES ($1, $2) ON CONFLICT DO NOTHING', [sid, fid]);
+    }
+  }
+  await q('INSERT INTO meta (key, value) VALUES ($1, $2)', [GUESTS.key, 'ok']);
+  console.log('Reprise importée : invités des soirées plancha et tataki');
+}
+
+async function seedAll() {
+  await seed();
+  await seedGuests();
+}
+
+module.exports = { seed: seedAll };
