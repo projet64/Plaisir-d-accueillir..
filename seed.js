@@ -216,7 +216,7 @@ const PHOTO_QUERIES = {
   'Thon tataki à la plancha': ['tuna tataki', 'seared tuna sesame']
 };
 async function seedPhotos() {
-  const key = 'photos-reprise-v1';
+  const key = 'photos-reprise-v2';
   const done = await q('SELECT 1 FROM meta WHERE key = $1', [key]);
   if (done.rows.length) return;
   const photos = require('./photos');
@@ -236,6 +236,7 @@ async function seedPhotos() {
         ok++;
         break;
       } catch (e) { console.error(`Photo ${name} (${query}) :`, e.message); }
+      await new Promise((res) => setTimeout(res, 1500));
     }
   }
   await q('INSERT INTO meta (key, value) VALUES ($1, $2)', [key, String(ok)]);
