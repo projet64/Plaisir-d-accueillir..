@@ -19,9 +19,13 @@ Règles :
 - "passive": true si l'étape ne demande pas d'être devant (mijotage, repos, four).
 - "veille": true seulement si l'étape doit être faite la veille (marinade, dessalage...).
 - "watch": le signe concret qui dit que c'est prêt (« la sauce nappe la cuillère »), sinon "".
-- 4 à 12 étapes, dans l'ordre.`;
+- 4 à 12 étapes, dans l'ordre.
+- ALLERGIE DANS LA FAMILLE : Jérôme est allergique aux POIS CHICHES. N'utilise JAMAIS de pois chiches ni de dérivés (houmous, farine de pois chiche / besan, falafel, socca, panisse, aquafaba). Si la recette d'origine en contient, remplace-les par une alternative adaptée et signale le remplacement dans la description.`;
 
-async function callClaude(content) {
+const ALLERGEN = /pois[\s-]*chiche|chick[\s-]*pea|garbanzo|houmous|hummus|falafel|socca|panisse|aquafaba|besan/i;
+const hasAllergen = (r) => ALLERGEN.test(JSON.stringify(r.ingredients || [])) || r.steps.some((x) => ALLERGEN.test(x.text));
+
+async function callClaude(content, retry = false) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     const e = new Error("La clé API Claude n'est pas encore configurée sur le serveur.");
@@ -51,7 +55,16 @@ async function callClaude(content) {
   const text = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
   const m = text.match(/\{[\s\S]*\}/);
   if (!m) throw Object.assign(new Error("L'IA n'a pas renvoyé de fiche exploitable."), { status: 502 });
-  return normalize(JSON.parse(m[0]));
+  const r = normalize(JSON.parse(m[0]));
+  if (hasAllergen(r) && !retry) {
+    // Une seconde chance, avec la consigne rappelée en tête
+    const again = typeof content === 'string'
+      ? 'RAPPEL ABSOLU : aucun pois chiche ni dérivé, Jérôme est allergique.\n\n' + content
+      : [{ type: 'text', text: 'RAPPEL ABSOLU : aucun pois chiche ni dérivé, Jérôme est allergique.' }, ...content];
+    return callClaude(again, true);
+  }
+  if (hasAllergen(r)) throw Object.assign(new Error('La fiche proposée contenait des pois chiches : refusée. Reformule la demande.'), { status: 422 });
+  return r;
 }
 
 const CATS = ['apero', 'entree', 'plat', 'dessert', 'cocktail'];

@@ -17,6 +17,10 @@ const CAT = Object.fromEntries(CATS);
 const COURSE_ORDER = ['cocktail', 'apero', 'entree', 'plat', 'dessert'];
 // Moment du service par rapport à l'heure « à table » (minutes)
 const SERVE_OFFSET = { cocktail: -30, apero: -30, entree: 0, plat: 30, dessert: 75 };
+// Allergie de Jérôme : alerte sur toute fiche qui en contient (recette saisie à la main, importée d'un lien...)
+const ALLERGEN = /pois[\s-]*chiche|chick[\s-]*pea|garbanzo|houmous|hummus|falafel|socca|panisse|aquafaba|besan/i;
+const hasAllergen = (r) => ALLERGEN.test((r.ingredients || []).map((i) => i.name).join(' ')) || (r.steps || []).some((x) => ALLERGEN.test(x.text || ''));
+const allergenAlert = () => `<div class="alert">${ico('warn')}<span><b>Contient des pois chiches</b> : Jérôme y est allergique. À remplacer ou à éviter.</span></div>`;
 const UNITS = ['', 'g', 'kg', 'ml', 'cl', 'l', 'c. à s.', 'c. à c.', 'pincée'];
 
 const I = {
@@ -300,6 +304,7 @@ async function viewRecipe(id) {
           <div class="muted">${[r.prep_minutes ? fmtMin(r.prep_minutes) : '', r.difficulty, r.steps.some((s) => s.veille) ? 'à préparer la veille' : ''].filter(Boolean).map(esc).join(' · ')}</div>
           ${r.description ? `<p style="margin:4px 0 0;line-height:1.5">${esc(r.description)}</p>` : ''}
         </div>
+        ${hasAllergen(r) ? allergenAlert() : ''}
         <div class="grid-auto">
           <section>
             <div class="card stepper"><span style="font-weight:500">Pour ${n} convive${n > 1 ? 's' : ''}</span><div class="ctl">
@@ -390,6 +395,7 @@ async function viewRecipeEdit(id, draft) {
     shell('#/recettes', `${backLink(isNew ? '#/ajouter' : `#/recette/${r.id}`, isNew ? 'Ajouter' : 'Retour à la fiche')}
     <div class="page-head"><h1>${isNew ? 'Vérifier la <em class="acc">fiche</em>' : 'Modifier la <em class="acc">fiche</em>'}</h1>
       ${draft ? '<span class="muted">Préparée par l’IA · corrige ce qu’il faut avant d’enregistrer</span>' : ''}</div>
+    ${hasAllergen(r) ? allergenAlert() : ''}
     <form id="rf" class="stack" style="gap:28px">
       <div class="form-grid">
         <div class="field span-4"><label for="f-name">Nom</label><input class="input" id="f-name" value="${esc(r.name)}" required></div>
@@ -596,6 +602,7 @@ async function viewSoiree(id, params) {
         <div class="field" style="justify-content:flex-end"><button class="btn btn-primary" type="submit">${isNew ? 'Créer la soirée' : 'Enregistrer'}</button></div>
       </div>
     </form>
+    ${s.recipes.some(hasAllergen) ? `<div style="margin-top:20px">${allergenAlert()}</div>` : ''}
     ${s.repeats.length ? `<div class="alert" style="margin-top:20px">${ico('warn')}<div>${s.repeats.map((x) => `<b>${esc(x.recipe)}</b> a déjà été servi à ${esc(x.friend)} le ${fmtDateShort(x.date)}.`).join('<br>')}</div></div>` : ''}
     <div class="grid-2 section">
       <section class="stack"><div class="row" style="justify-content:space-between"><h2>Les invités</h2><button class="btn btn-quiet" id="add-f">${ico('plus')}Inviter</button></div>

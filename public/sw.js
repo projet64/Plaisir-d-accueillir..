@@ -1,5 +1,5 @@
 // Service worker : met en cache l'enveloppe de l'appli, les données restent toujours fraîches
-const CACHE = 'pda-v3';
+const CACHE = 'pda-v4';
 const SHELL = ['/', '/app.css', '/app.js', '/manifest.webmanifest', '/img/fond.jpg', '/img/icon-192.png'];
 
 self.addEventListener('install', (e) => {
