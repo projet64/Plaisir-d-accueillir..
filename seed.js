@@ -205,9 +205,46 @@ async function seedGuests() {
   console.log('Reprise importée : invités des soirées plancha et tataki');
 }
 
+// Photos libres de droits pour les recettes reprises (le serveur cherche et télécharge)
+const PHOTO_QUERIES = {
+  'Brochettes de poulet yakitori': ['yakitori skewers', 'yakitori'],
+  'Légumes grillés à l’huile aillée': ['grilled vegetables zucchini peppers', 'grilled vegetables'],
+  'Pluma ibérique à la plancha': ['pluma iberica', 'grilled pork steak sliced', 'secreto iberico'],
+  'Saumon au miso, peau croustillante': ['pan seared salmon crispy skin', 'grilled salmon fillet'],
+  'Gambas à l’huile aillée': ['gambas a la plancha', 'grilled prawns garlic'],
+  'Sucrines grillées au parmesan': ['grilled romaine lettuce', 'grilled lettuce'],
+  'Thon tataki à la plancha': ['tuna tataki', 'seared tuna sesame']
+};
+async function seedPhotos() {
+  const key = 'photos-reprise-v1';
+  const done = await q('SELECT 1 FROM meta WHERE key = $1', [key]);
+  if (done.rows.length) return;
+  const photos = require('./photos');
+  let ok = 0;
+  for (const [name, queries] of Object.entries(PHOTO_QUERIES)) {
+    const r = await q('SELECT id, photo_id FROM recipes WHERE name = $1', [name]);
+    if (!r.rows.length || r.rows[0].photo_id) continue;
+    for (const query of queries) {
+      try {
+        const found = await photos.searchCommons(query, 8);
+        if (!found.length) continue;
+        const pick = found[0];
+        const { buf, mime } = await photos.download(pick.thumb);
+        const ph = await q('INSERT INTO photos (data, mime) VALUES ($1, $2) RETURNING id', [buf, mime]);
+        await q("UPDATE recipes SET photo_id = $1, photo_kind = 'web', photo_credit = $2 WHERE id = $3", [ph.rows[0].id, photos.credit(pick), r.rows[0].id]);
+        console.log(`Photo trouvée pour ${name} : ${pick.title}`);
+        ok++;
+        break;
+      } catch (e) { console.error(`Photo ${name} (${query}) :`, e.message); }
+    }
+  }
+  await q('INSERT INTO meta (key, value) VALUES ($1, $2)', [key, String(ok)]);
+}
+
 async function seedAll() {
   await seed();
   await seedGuests();
+  await seedPhotos();
 }
 
 module.exports = { seed: seedAll };

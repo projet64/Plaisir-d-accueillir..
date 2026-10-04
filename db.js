@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS soiree_photos (
 
 async function init() {
   await pool.query(SCHEMA);
+  await pool.query('ALTER TABLE recipes ADD COLUMN IF NOT EXISTS photo_credit TEXT');
 }
 
 module.exports = { pool, init, q: (text, params) => pool.query(text, params) };

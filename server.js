@@ -5,6 +5,7 @@ const path = require('path');
 const { q, init } = require('./db');
 const { draftRecipe } = require('./ai');
 const { seed } = require('./seed');
+const photos = require('./photos');
 
 const app = express();
 app.use(express.json({ limit: '20mb' }));
@@ -48,6 +49,18 @@ app.post('/api/photos', wrap(async (req, res) => {
   const r = await q('INSERT INTO photos (data, mime) VALUES ($1, $2) RETURNING id', [Buffer.from(data, 'base64'), mime || 'image/jpeg']);
   res.json({ id: r.rows[0].id });
 }));
+// Recherche de photos libres de droits (Wikimedia Commons) et import par le serveur
+app.get('/api/photos/search', wrap(async (req, res) => {
+  const query = String(req.query.q || '').trim();
+  if (!query) return res.json([]);
+  res.json(await photos.searchCommons(query));
+}));
+app.post('/api/photos/from-url', wrap(async (req, res) => {
+  const { url } = req.body || {};
+  const { buf, mime } = await photos.download(url);
+  const r = await q('INSERT INTO photos (data, mime) VALUES ($1, $2) RETURNING id', [buf, mime]);
+  res.json({ id: r.rows[0].id });
+}));
 app.get('/api/photos/:id', wrap(async (req, res) => {
   const r = await q('SELECT data, mime FROM photos WHERE id = $1', [int(req.params.id)]);
   if (!r.rows[0]) return res.status(404).end();
@@ -57,7 +70,7 @@ app.get('/api/photos/:id', wrap(async (req, res) => {
 }));
 
 // ---------- Recettes ----------
-const RECIPE_FIELDS = ['name', 'category', 'servings', 'prep_minutes', 'difficulty', 'description', 'ingredients', 'steps', 'photo_id', 'photo_kind', 'source', 'favorite'];
+const RECIPE_FIELDS = ['name', 'category', 'servings', 'prep_minutes', 'difficulty', 'description', 'ingredients', 'steps', 'photo_id', 'photo_kind', 'source', 'favorite', 'photo_credit'];
 function recipeValues(b) {
   return [
     String(b.name || 'Sans titre').slice(0, 200),
@@ -71,7 +84,8 @@ function recipeValues(b) {
     int(b.photo_id) || null,
     b.photo_kind || null,
     b.source || null,
-    !!b.favorite
+    !!b.favorite,
+    b.photo_credit || null
   ];
 }
 

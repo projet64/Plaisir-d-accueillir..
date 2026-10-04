@@ -286,7 +286,9 @@ async function viewRecipe(id) {
         <div class="photo" style="${r.photo_id ? `background-image:url('${photoUrl(r.photo_id)}')` : ''}">
           ${r.photo_id && r.photo_kind === 'illustration' ? '<span class="tag">Illustration</span>' : ''}
           ${!r.photo_id ? `<div style="margin:auto;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center"><span class="muted">Pas encore de photo du plat</span></div>` : ''}
-          <div class="row"><button class="btn btn-amber" id="ph">${ico('cam')}${r.photo_id ? 'Changer la photo' : 'Ajouter ma photo'}</button></div>
+          <div class="row"><button class="btn btn-amber" id="ph">${ico('cam')}${r.photo_id && r.photo_kind === 'mine' ? 'Changer ma photo' : 'Ajouter ma photo'}</button>
+            <button class="btn btn-quiet" id="ph-web">${ico('photo')}Trouver une photo</button></div>
+          ${r.photo_id && r.photo_kind === 'web' && r.photo_credit ? `<span class="tag" style="font-size:11px">Photo d’illustration · ${esc(r.photo_credit)}</span>` : ''}
           ${lastNote ? `<div class="card" style="padding:14px 16px"><span style="font-family:var(--serif);font-style:italic;font-size:17px">« ${esc(lastNote.note)} »</span><br><span class="muted" style="font-size:12px">Souvenir · ${esc(lastNote.title)}, ${fmtDateShort(lastNote.date)}</span></div>` : ''}
         </div>
       </div>
@@ -328,8 +330,37 @@ async function viewRecipe(id) {
       await api('PUT', `/api/recipes/${r.id}`, r); toast('Photo enregistrée'); render();
     };
     $('#to-soiree').onclick = () => addToSoiree(r);
+    $('#ph-web').onclick = () => findPhoto(r, render);
   };
   render();
+}
+
+// Photo trouvée sur le web (Wikimedia Commons, licences libres) : on choisit, le serveur l'importe
+function findPhoto(r, done) {
+  modal(`<h2>Trouver une photo</h2>
+    <p class="muted" style="margin:0;font-size:14px">Photos libres de droits (Wikimedia Commons). Les termes en anglais donnent souvent plus de résultats.</p>
+    <form id="fp-f" class="row" style="flex-wrap:nowrap"><input class="input" id="fp-q" value="${esc(r.name)}" aria-label="Recherche"><button class="btn btn-primary" type="submit">Chercher</button></form>
+    <div id="fp-res" class="gallery"></div>`, (m, close) => {
+    const run = async () => {
+      const box = $('#fp-res', m);
+      box.innerHTML = '<div class="spinner"></div>';
+      try {
+        const list = await GET('/api/photos/search?q=' + encodeURIComponent($('#fp-q', m).value));
+        box.innerHTML = list.length ? list.map((x, i) => `<button type="button" data-i="${i}" style="padding:0;border:0;background:none;cursor:pointer;text-align:left"><img src="${esc(x.thumb)}" alt="${esc(x.title)}" loading="lazy"><span class="muted" style="font-size:11px;display:block;margin-top:4px">${esc(x.license || '')}</span></button>`).join('')
+          : '<p class="muted">Aucune photo trouvée, essaie d’autres mots (en anglais par exemple).</p>';
+        $$('[data-i]', box).forEach((b) => (b.onclick = async () => {
+          const x = list[+b.dataset.i];
+          box.innerHTML = '<div class="spinner"></div>';
+          const ph = await api('POST', '/api/photos/from-url', { url: x.thumb });
+          r.photo_id = ph.id; r.photo_kind = 'web'; r.photo_credit = [x.artist, x.license, 'Wikimedia Commons'].filter(Boolean).join(' · ');
+          await api('PUT', `/api/recipes/${r.id}`, r);
+          close(); toast('Photo enregistrée'); done();
+        }));
+      } catch (e) { box.innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
+    };
+    $('#fp-f', m).onsubmit = (e) => { e.preventDefault(); run(); };
+    run();
+  });
 }
 
 async function addToSoiree(r) {
