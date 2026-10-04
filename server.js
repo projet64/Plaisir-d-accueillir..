@@ -159,7 +159,7 @@ app.delete('/api/friends/:id', wrap(async (req, res) => {
 app.get('/api/soirees', wrap(async (req, res) => {
   const r = await q(`SELECT s.id, s.title, s.date, s.time, s.guests, s.checked,
       COALESCE((SELECT string_agg(f.name, ', ' ORDER BY f.name) FROM soiree_friends sf JOIN friends f ON f.id = sf.friend_id WHERE sf.soiree_id = s.id), '') AS friends,
-      COALESCE((SELECT string_agg(r.name, ' · ' ORDER BY array_position(ARRAY['cocktail','apero','entree','plat','dessert'], sr.course)) FROM soiree_recipes sr JOIN recipes r ON r.id = sr.recipe_id WHERE sr.soiree_id = s.id), '') AS menu,
+      COALESCE((SELECT string_agg(r.name, ' · ' ORDER BY array_position(ARRAY['cocktail','apero','entree','plat','fromage','dessert'], sr.course)) FROM soiree_recipes sr JOIN recipes r ON r.id = sr.recipe_id WHERE sr.soiree_id = s.id), '') AS menu,
       (SELECT sp.photo_id FROM soiree_photos sp WHERE sp.soiree_id = s.id LIMIT 1) AS photo_id
     FROM soirees s ORDER BY s.date DESC, s.time DESC`);
   res.json(r.rows);
@@ -240,6 +240,9 @@ app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 
 const PORT = process.env.PORT || 8080;
 init()
-  .then(() => seed().catch((e) => console.error('Reprise des soirées : erreur', e)))
-  .then(() => app.listen(PORT, () => console.log(`Plaisir d'accueillir sur le port ${PORT}`)))
+  .then(() => {
+    app.listen(PORT, () => console.log(`Plaisir d'accueillir sur le port ${PORT}`));
+    // Reprises et menus en arrière-plan : l'appli répond pendant ce temps
+    seed().catch((e) => console.error('Reprise des soirées : erreur', e));
+  })
   .catch((e) => { console.error('Base de données injoignable', e); process.exit(1); });

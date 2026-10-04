@@ -4,7 +4,7 @@ const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5';
 const FORMAT = `Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de la forme :
 {
   "name": "Nom de la recette",
-  "category": "apero" | "entree" | "plat" | "dessert" | "cocktail",
+  "category": "apero" | "entree" | "plat" | "fromage" | "dessert" | "cocktail",
   "servings": 4,
   "prep_minutes": 45,
   "difficulty": "Facile" | "Moyen" | "Difficile",
@@ -67,7 +67,7 @@ async function callClaude(content, retry = false) {
   return r;
 }
 
-const CATS = ['apero', 'entree', 'plat', 'dessert', 'cocktail'];
+const CATS = ['apero', 'entree', 'plat', 'fromage', 'dessert', 'cocktail'];
 function normalize(r) {
   return {
     name: String(r.name || 'Nouvelle recette').slice(0, 200),
@@ -114,6 +114,9 @@ async function draftRecipe({ mode, input, image, mime }) {
   if (mode === 'link') {
     let url;
     try { url = new URL(input); } catch { throw Object.assign(new Error('Lien invalide.'), { status: 400 }); }
+    if (/(^|\.)(instagram|tiktok|facebook|fb)\.com$/.test(url.hostname)) {
+      throw Object.assign(new Error('Instagram, TikTok et Facebook bloquent la lecture de leurs pages. Fais une capture d’écran de la publication et passe par « Photo de la recette », ou copie la légende dans « La dicter ».'), { status: 400 });
+    }
     const page = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (PlaisirDAccueillir)' } });
     if (!page.ok) throw Object.assign(new Error('Impossible d’ouvrir ce lien.'), { status: 400 });
     const text = htmlToText(await page.text());

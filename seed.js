@@ -242,10 +242,59 @@ async function seedPhotos() {
   await q('INSERT INTO meta (key, value) VALUES ($1, $2)', [key, String(ok)]);
 }
 
+// Menus préparés avec Claude pour une soirée déjà créée dans l'appli (dossier menus/)
+async function attachPhoto(recipeId, queries) {
+  const photos = require('./photos');
+  for (const query of queries || []) {
+    try {
+      const found = await photos.searchCommons(query, 8);
+      if (!found.length) continue;
+      const pick = found[0];
+      const { buf, mime } = await photos.download(pick.thumb);
+      const ph = await q('INSERT INTO photos (data, mime) VALUES ($1, $2) RETURNING id', [buf, mime]);
+      await q("UPDATE recipes SET photo_id = $1, photo_kind = 'web', photo_credit = $2 WHERE id = $3 AND photo_id IS NULL", [ph.rows[0].id, photos.credit(pick), recipeId]);
+      return pick.title;
+    } catch (e) { console.error(`Photo (${query}) :`, e.message); }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  return null;
+}
+async function seedMenus() {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.join(__dirname, 'menus');
+  if (!fs.existsSync(dir)) return;
+  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.js')).sort()) {
+    const menu = require(path.join(dir, file));
+    const done = await q('SELECT 1 FROM meta WHERE key = $1', [menu.key]);
+    if (done.rows.length) continue;
+    const sr = await q('SELECT id, notes FROM soirees WHERE date = $1 ORDER BY id DESC LIMIT 1', [menu.date]);
+    if (!sr.rows.length) { console.log(`Menu ${menu.key} : aucune soirée le ${menu.date}, en attente`); continue; }
+    const sid = sr.rows[0].id;
+    if (!sr.rows[0].notes && menu.notes) await q('UPDATE soirees SET notes = $1 WHERE id = $2', [menu.notes, sid]);
+    for (const r of menu.recipes) {
+      const ex = await q('SELECT id FROM recipes WHERE lower(name) = lower($1)', [r.name]);
+      let rid;
+      if (ex.rows.length) rid = ex.rows[0].id;
+      else {
+        rid = (await q(`INSERT INTO recipes (name, category, servings, prep_minutes, difficulty, description, ingredients, steps, created_by)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+          [r.name, r.category, r.servings, r.prep_minutes, r.difficulty, r.description, JSON.stringify(r.ingredients), JSON.stringify(r.steps), 'Claude'])).rows[0].id;
+        const t = await attachPhoto(rid, r.photo);
+        console.log(`Menu ${menu.date} : ${r.name}${t ? ' (photo : ' + t + ')' : ''}`);
+      }
+      await q('INSERT INTO soiree_recipes (soiree_id, recipe_id, course) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [sid, rid, r.course]);
+    }
+    await q('INSERT INTO meta (key, value) VALUES ($1, $2)', [menu.key, String(sid)]);
+    console.log(`Menu importé dans la soirée ${sid} du ${menu.date}`);
+  }
+}
+
 async function seedAll() {
   await seed();
   await seedGuests();
   await seedPhotos();
+  await seedMenus();
 }
 
 module.exports = { seed: seedAll };

@@ -11,12 +11,12 @@ let WHO = localStorage.getItem('pda-who') || '';
 let AI_ON = false;
 
 const CATS = [
-  ['apero', 'Apéro'], ['entree', 'Entrée'], ['plat', 'Plat'], ['dessert', 'Dessert'], ['cocktail', 'Cocktail']
+  ['apero', 'Apéro'], ['entree', 'Entrée'], ['plat', 'Plat'], ['fromage', 'Fromage'], ['dessert', 'Dessert'], ['cocktail', 'Cocktail']
 ];
 const CAT = Object.fromEntries(CATS);
-const COURSE_ORDER = ['cocktail', 'apero', 'entree', 'plat', 'dessert'];
+const COURSE_ORDER = ['cocktail', 'apero', 'entree', 'plat', 'fromage', 'dessert'];
 // Moment du service par rapport à l'heure « à table » (minutes)
-const SERVE_OFFSET = { cocktail: -30, apero: -30, entree: 0, plat: 30, dessert: 75 };
+const SERVE_OFFSET = { cocktail: -30, apero: -30, entree: 0, plat: 30, fromage: 65, dessert: 85 };
 // Allergie de Jérôme : alerte sur toute fiche qui en contient (recette saisie à la main, importée d'un lien...)
 const ALLERGEN = /pois[\s-]*chiche|chick[\s-]*pea|garbanzo|houmous|hummus|falafel|socca|panisse|aquafaba|besan/i;
 const hasAllergen = (r) => ALLERGEN.test((r.ingredients || []).map((i) => i.name).join(' ')) || (r.steps || []).some((x) => ALLERGEN.test(x.text || ''));
@@ -703,8 +703,14 @@ function buildPlan(s) {
   const arrival = new Date(base.getTime() - 30 * 60000);
   items.push({ at: arrival, label: 'Arrivée des invités', recipe: '', fixed: true });
   items.push({ at: base, label: 'À table !', recipe: '', end: true });
-  items.sort((a, b) => (a.veille ? -1 : b.veille ? 1 : a.at - b.at));
-  return items;
+  // La veille : d'abord les préparations les plus longues (à lancer en premier), dans l'ordre des fiches
+  const veille = items.filter((x) => x.veille);
+  const load = {};
+  veille.forEach((x) => { load[x.rid] = (load[x.rid] || 0) + (x.minutes || 0); });
+  veille.forEach((x, k) => { x.k = k; });
+  veille.sort((a, b) => (load[b.rid] - load[a.rid]) || (a.k - b.k));
+  const jour = items.filter((x) => !x.veille).sort((a, b) => a.at - b.at);
+  return [...veille, ...jour];
 }
 async function viewPlanning(id) {
   loading('#/soirees');
@@ -723,7 +729,7 @@ async function viewPlanning(id) {
       return `<div class="tl-row ${cls}"><span class="tl-time">${x.veille ? 'Veille' : hm(x.at)}</span><div class="tl-dot"><i></i>${k < items.length - 1 ? '<s></s>' : ''}</div>
         <div class="tl-body"><span class="l">${esc(x.label)}${x.minutes ? ` <span class="muted">· ${fmtMin(x.minutes)}</span>` : ''}</span><span class="t">${x.rid ? `<a href="#/cuisson/${x.rid}?n=${s.guests}">${esc(x.recipe)}</a>` : ''}</span></div></div>`;
     }).join('')}</div>
-    <p class="muted" style="font-size:14px">Apéro et cocktail servis à l’arrivée (30 min avant), entrée à l’heure dite, plat 30 min après, dessert 1 h 15 après. Les durées viennent des fiches : ajuste-les dans « Modifier ».</p>`
+    <p class="muted" style="font-size:14px">Apéro et cocktail servis à l’arrivée (30 min avant), entrée à l’heure dite, plat 30 min après, fromage 1 h 05 après, dessert 1 h 25 après. Les durées viennent des fiches : ajuste-les dans « Modifier ».</p>`
     : '<p class="muted">Ajoute des plats au menu pour obtenir le rétroplanning.</p>'}`);
 }
 
