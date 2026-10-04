@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const path = require('path');
 const { q, init } = require('./db');
 const { draftRecipe } = require('./ai');
+const { seed } = require('./seed');
 
 const app = express();
 app.use(express.json({ limit: '20mb' }));
@@ -225,5 +226,6 @@ app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 
 const PORT = process.env.PORT || 8080;
 init()
+  .then(() => seed().catch((e) => console.error('Reprise des soirées : erreur', e)))
   .then(() => app.listen(PORT, () => console.log(`Plaisir d'accueillir sur le port ${PORT}`)))
   .catch((e) => { console.error('Base de données injoignable', e); process.exit(1); });
