@@ -25,37 +25,87 @@ Règles :
 const ALLERGEN = /pois[\s-]*chiche|chick[\s-]*pea|garbanzo|houmous|hummus|falafel|socca|panisse|aquafaba|besan/i;
 const hasAllergen = (r) => ALLERGEN.test(JSON.stringify(r.ingredients || [])) || r.steps.some((x) => ALLERGEN.test(x.text));
 
-async function callClaude(content, retry = false) {
+const SYSTEM = "Tu es le chef de cuisine de la famille Bouzeran, à Nîmes. Tu rédiges des fiches recettes fiables pour l'appli familiale « Plaisir d'accueillir ».";
+
+// Le modèle réfléchit avant de répondre, et cette réflexion compte dans max_tokens : avec 4 000 jetons,
+// la fiche pouvait être coupée en route. Réflexion réglée sur « medium » et marge large ; si l'API
+// refusait le réglage, on s'en passe. (Même correctif que l'appli Jardin Verdet, 31/10/2026.)
+const EFFORT = process.env.ANTHROPIC_EFFORT || 'medium';
+let effortAccepte = !!EFFORT;
+
+const erreur = (message, status = 502) => Object.assign(new Error(message), { status });
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Un appel à l'API ; renvoie le texte et de quoi diagnostiquer une réponse inattendue
+async function appel(messages, maxTokens) {
   const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) {
-    const e = new Error("La clé API Claude n'est pas encore configurée sur le serveur.");
-    e.status = 503;
-    throw e;
+  if (!key) throw erreur("La clé API Claude n'est pas encore configurée sur le serveur.", 503);
+  let res, data;
+  for (let essai = 0; essai < 3; essai++) {
+    const corps = { model: MODEL, max_tokens: maxTokens, system: SYSTEM, messages };
+    if (effortAccepte) corps.output_config = { effort: EFFORT };
+    try {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify(corps),
+        signal: AbortSignal.timeout(240000)
+      });
+    } catch (e) {
+      if (e.name === 'TimeoutError') throw erreur('Claude met trop de temps à répondre. Réessaie dans un instant.', 504);
+      if (essai === 2) throw erreur('Claude est injoignable pour le moment. Réessaie dans un instant.');
+      await pause(2000);
+      continue;
+    }
+    data = await res.json().catch(() => ({}));
+    if (res.ok) break;
+    const msg = (data && data.error && data.error.message) || '';
+    if (res.status === 400 && corps.output_config && /output_config|effort/i.test(msg)) {
+      console.error('Réglage de réflexion refusé par l’API, appel sans réglage :', msg);
+      effortAccepte = false;
+      continue;
+    }
+    if (![429, 500, 529].includes(res.status)) break;
+    await pause(4000);
   }
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 4000,
-      system: "Tu es le chef de cuisine de la famille Bouzeran, à Nîmes. Tu rédiges des fiches recettes fiables pour l'appli familiale « Plaisir d'accueillir ».",
-      messages: [{ role: 'user', content }]
-    })
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    const e = new Error((data && data.error && data.error.message) || 'Erreur de l’IA');
-    e.status = 502;
-    throw e;
-  }
-  const text = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
-  const m = text.match(/\{[\s\S]*\}/);
-  if (!m) throw Object.assign(new Error("L'IA n'a pas renvoyé de fiche exploitable."), { status: 502 });
-  const r = normalize(JSON.parse(m[0]));
+  if (!res.ok) throw erreur((data && data.error && data.error.message) || 'Erreur de l’IA');
+  const blocs = Array.isArray(data.content) ? data.content : [];
+  return {
+    texte: blocs.filter((b) => b.type === 'text').map((b) => b.text).join('').trim(),
+    fin: data.stop_reason || null,
+    blocs: blocs.map((b) => b.type).join(',') || 'aucun',
+    sortie: data.usage ? data.usage.output_tokens : null
+  };
+}
+
+function lireJSON(texte) {
+  const t = String(texte || '').replace(/```(?:json)?/gi, '');
+  const debut = t.indexOf('{');
+  const fin = t.lastIndexOf('}');
+  if (debut < 0 || fin <= debut) return null;
+  try { return JSON.parse(t.slice(debut, fin + 1)); } catch { return null; }
+}
+
+// Demande la fiche. Réponse coupée : même demande avec deux fois plus de place.
+// Réponse hors format : on exige l'objet JSON seul.
+async function demanderFiche(content) {
+  const premier = [{ role: 'user', content }];
+  const r = await appel(premier, 16000);
+  let obj = lireJSON(r.texte);
+  if (obj) return obj;
+  console.error('Claude : fiche sans JSON', { fin: r.fin, blocs: r.blocs, sortie: r.sortie, extrait: r.texte.slice(0, 300) });
+  const relance = r.fin !== 'max_tokens' && r.texte
+    ? [...premier, { role: 'assistant', content: r.texte }, { role: 'user', content: 'Reprends ta réponse sous la forme demandée : uniquement l’objet JSON valide, sans aucun texte autour.' }]
+    : premier;
+  const r2 = await appel(relance, 32000);
+  obj = lireJSON(r2.texte);
+  if (obj) return obj;
+  console.error('Claude : toujours pas de fiche', { fin: r2.fin, blocs: r2.blocs, sortie: r2.sortie, extrait: r2.texte.slice(0, 300) });
+  throw erreur("L'IA n'a pas renvoyé de fiche exploitable. Réessaie, ou reformule la demande.");
+}
+
+async function callClaude(content, retry = false) {
+  const r = normalize(await demanderFiche(content));
   if (hasAllergen(r) && !retry) {
     // Une seconde chance, avec la consigne rappelée en tête
     const again = typeof content === 'string'

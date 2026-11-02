@@ -22,6 +22,7 @@ Variables d’environnement (Railway) :
 | `DATABASE_URL` | Base Postgres Railway |
 | `CODE_ACCES` | Code famille demandé à la première ouverture |
 | `ANTHROPIC_API_KEY` | Clé API Claude (jamais dans le code) |
-| `ANTHROPIC_MODEL` | Facultatif, modèle Claude utilisé |
+| `ANTHROPIC_MODEL` | Facultatif, modèle Claude utilisé (`claude-sonnet-5-5` par défaut) |
+| `ANTHROPIC_EFFORT` | Facultatif, niveau de réflexion de Claude (`medium` par défaut) |
 
 Lancer en local : `npm install` puis `DATABASE_URL=... npm start`.
